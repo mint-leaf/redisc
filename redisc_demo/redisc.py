@@ -23,7 +23,7 @@ class Rkeys(object):
     def get_values(self, *args):
         result_list = self.conn.mget(*args)
         result = {key: value for key, value in zip(args, result_list)}
-        return "result:{0}".format(str(args))
+        return result
 
     def set_values(self, **kargs):
         self.Rstring_keys += [key for key in kargs]
@@ -155,7 +155,7 @@ class Rstring(object):
         return str(self.key)
 
 
-class Rlist(object):
+class Rlist(list):
 
     def __init__(self, rkeys, key, value=None):
         self.rkeys = rkeys
@@ -190,6 +190,23 @@ class Rlist(object):
         return result
 
     def cut(self, start, end):
-        if not (isinstance(start, int) and isinstance(start, end)):
+        if not (isinstance(start, int) and isinstance(end, start)):
             raise TypeError("start and end must be int type")
         return self.conn.ltrim(self.key)
+
+    def bpop(self, left=True, time_out=0, dest=None, num=1):
+        if not (isinstance(time_out, int) and isinstance(left, bool)):
+            raise TypeError("time_out must be int type")
+        if left and not dest:
+            return self.conn.blpop(self.key, time_out)
+        elif not dest:
+            return self.conn.brpop(self.key, time_out)
+        elif dest:
+            if not isinstance(dest, list):
+                raise TypeError("dest type error")
+            try:
+                if dest.key in self.rkeys.Rlist:
+                    return self.conn.brpoplpush(self.key, dest.key, time_out)
+            except Exception:
+                result = self.conn.rpop(self.key)
+                return [result, ] + 
