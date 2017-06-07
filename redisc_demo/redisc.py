@@ -174,20 +174,24 @@ class Rlist(list):
         # True is left,  False is right
         if not isinstance(left, bool):
             raise TypeError("must be bool type")
-        if methods:
+        if left:
             result = self.conn.lpush(self.key, *value)
         else:
             result = self.conn.rpush(self.key, *value)
         return result
 
-    def pop(self, left=True):
+    def pop(self, left=True, dest=None, num=1):
         if not isinstance(left, bool):
             raise TypeError("must be bool type")
-        if methods:
-            result = self.conn.lpop(self.key)
-        else:
-            result = self.conn.rpop(self.key)
-        return result
+        pipe = self.conn.pipeline()
+        while (num):
+            if left:
+                pipe.lpop(self.key)
+            else:
+                pipe.rpop(self.key)
+            num -= 1
+        result = pipe.execute()[0]
+        return result + ([] if not dest else dest)
 
     def cut(self, start, end):
         if not (isinstance(start, int) and isinstance(end, start)):
@@ -209,4 +213,4 @@ class Rlist(list):
                     return self.conn.brpoplpush(self.key, dest.key, time_out)
             except Exception:
                 result = self.conn.rpop(self.key)
-                return [result, ] + 
+                return [result, ] + self.
